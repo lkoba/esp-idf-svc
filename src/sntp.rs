@@ -1,7 +1,8 @@
 extern crate alloc;
 use alloc::string::String;
 
-use log::*;
+// added :: to prevent ambiguous name error.
+use ::log::*;
 
 use esp_idf_hal::mutex;
 
