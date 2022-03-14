@@ -193,12 +193,13 @@ where
         phy_addr: Option<u32>,
     ) -> Result<(*mut esp_eth_mac_t, *mut esp_eth_phy_t), EspError> {
         let mac_cfg = EspEth::<RmiiEthPeripherals<MDC, MDIO>>::eth_mac_default_config();
+        let emac_cfg = EspEth::<RmiiEthPeripherals<MDC, MDIO>>::eth_emac_default_config();
         let phy_cfg = EspEth::<RmiiEthPeripherals<MDC, MDIO>>::eth_phy_default_config(
             reset.as_ref().map(|p| p.pin()),
             phy_addr,
         );
 
-        let mac = unsafe { esp_eth_mac_new_esp32(&mac_cfg) };
+        let mac = unsafe { esp_eth_mac_new_esp32(&emac_cfg, &mac_cfg) };
 
         let phy = match chipset {
             RmiiEthChipset::IP101 => unsafe { esp_eth_phy_new_ip101(&phy_cfg) },
@@ -213,7 +214,7 @@ where
             #[cfg(esp_idf_version = "4.4")]
             RmiiEthChipset::KSZ8081 => unsafe { esp_eth_phy_new_ksz8081(&phy_cfg) },
             #[cfg(esp_idf_version_major = "5")]
-            RmiiEthChipset::KSZ80XX => unsafe { esp_eth_phy_new_ksz8041(&phy_cfg) },
+            RmiiEthChipset::KSZ80XX => unsafe { esp_eth_phy_new_ksz80xx(&phy_cfg) },
         };
 
         Ok((mac, phy))
@@ -886,9 +887,15 @@ impl<P> EspEth<P> {
             sw_reset_timeout_ms: 100,
             rx_task_stack_size: 2048,
             rx_task_prio: 15,
+            flags: 0,
+            ..Default::default()
+        }
+    }
+
+    fn eth_emac_default_config() -> eth_esp32_emac_config_t {
+        eth_esp32_emac_config_t {
             smi_mdc_gpio_num: 23,
             smi_mdio_gpio_num: 18,
-            flags: 0,
             #[cfg(any(esp_idf_version = "4.4", esp_idf_version_major = "5"))]
             interface: eth_data_interface_t_EMAC_DATA_INTERFACE_RMII,
             #[cfg(any(esp_idf_version = "4.4", esp_idf_version_major = "5"))]
